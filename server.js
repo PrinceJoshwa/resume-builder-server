@@ -24,7 +24,7 @@ app.use(cors({
 // Passport Configuration
 passport.use(new GoogleStrategy({
   clientID: process.env.GOOGLE_CLIENT_ID,
-  clientSecret: process.env.GOOGLE_CLIENT_SECRET,
+  clientSecret: process.env.GOOGLE_CLIENT_SEC,
   callbackURL: '/auth/google/callback'
 }, async (accessToken, refreshToken, profile, done) => {
   try {
@@ -47,7 +47,7 @@ passport.deserializeUser((id, done) => User.findById(id, done));
 
 // Session Middleware
 app.use(session({
-  secret: process.env.SESSION_SECRET,
+  secret: process.env.SESSION_SEC,
   resave: false,
   saveUninitialized: true,
   cookie: { secure: false } // Set secure: true if using HTTPS
