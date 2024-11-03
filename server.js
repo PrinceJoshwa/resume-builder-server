@@ -16,7 +16,7 @@ app.use(express.json());
 connectDB();
 
 app.use(cors({
-    origin: 'http://localhost:5173',
+    origin: 'https://resume-builder-client-jade.vercel.app',
     credentials: true, 
   }));
   
@@ -76,5 +76,6 @@ app.get('/dashboard', isAuthenticated, (req, res) => {
 });
 
 // Server Start
-const PORT = process.env.PORT || 5000;
+// const PORT = process.env.PORT || 5000;
+const PORT = process.env.PORT;
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
