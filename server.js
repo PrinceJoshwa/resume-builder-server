@@ -102,7 +102,7 @@ app.use(express.json());
 connectDB();
 
 app.use(cors({
-  origin: 'https://localhost:5173', // Update this with your actual frontend URL
+  origin: 'https://resume-builder-client-jade.vercel.app', // Update this with your actual frontend URL
   credentials: true,
 }));
 
