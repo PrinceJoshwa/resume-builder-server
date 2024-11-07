@@ -82,8 +82,7 @@
 
 
 
-
-
+// src/server.js
 const express = require('express');
 const passport = require('passport');
 const GoogleStrategy = require('passport-google-oauth20').Strategy;
@@ -103,15 +102,15 @@ app.use(express.json());
 connectDB();
 
 app.use(cors({
-  origin: 'https://resume-builder-client-jade.vercel.app',
-  credentials: true, 
+  origin: 'https://localhost:5173', // Update this with your actual frontend URL
+  credentials: true,
 }));
 
 // Passport Configuration
 passport.use(new GoogleStrategy({
   clientID: process.env.GOOGLE_CLIENT_ID,
   clientSecret: process.env.GOOGLE_CLIENT_SEC,
-  callbackURL: 'https://resume-builder-server-roan.vercel.app/auth/google/callback'
+  callbackURL: '/auth/google/callback'
 }, async (accessToken, refreshToken, profile, done) => {
   try {
     let user = await User.findOne({ googleId: profile.id });
@@ -128,8 +127,16 @@ passport.use(new GoogleStrategy({
   }
 }));
 
+// Serializing and Deserializing Users
 passport.serializeUser((user, done) => done(null, user.id));
-passport.deserializeUser((id, done) => User.findById(id, done));
+passport.deserializeUser(async (id, done) => {
+  try {
+    const user = await User.findById(id); // Using async/await instead of a callback
+    done(null, user);
+  } catch (err) {
+    done(err, null);
+  }
+});
 
 // Session Middleware
 app.use(session({
