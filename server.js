@@ -201,7 +201,7 @@ app.use(cors({
 passport.use(new GoogleStrategy({
   clientID: process.env.GOOGLE_CLIENT_ID,
   clientSecret: process.env.GOOGLE_CLIENT_SEC,
-  callbackURL: 'https://resume-builder-server-roan.vercel.app/auth/google/callback' // Deployed backend URL
+  callbackURL: 'https://resume-builder-server-roan.vercel.app/auth/google/callback', // Backend callback URL
 }, async (accessToken, refreshToken, profile, done) => {
   try {
     let user = await User.findOne({ googleId: profile.id });
@@ -214,6 +214,7 @@ passport.use(new GoogleStrategy({
     }
     done(null, user);
   } catch (error) {
+    console.error('Error in Google strategy:', error);  // Log the error for debugging
     done(error, null);
   }
 }));
@@ -229,12 +230,15 @@ passport.deserializeUser(async (id, done) => {
   }
 });
 
-// Session Middleware
+// Session Middleware with cookie settings for secure sessions in production
 app.use(session({
   secret: process.env.SESSION_SEC,
   resave: false,
-  saveUninitialized: true,
-  cookie: { secure: process.env.NODE_ENV === 'production' } // Secure in production
+  saveUninitialized: false,
+  cookie: { 
+    secure: process.env.NODE_ENV === 'production', 
+    sameSite: 'lax' // Adjust this based on your session needs
+  }
 }));
 app.use(passport.initialize());
 app.use(passport.session());
@@ -257,6 +261,11 @@ function isAuthenticated(req, res, next) {
 // Protected Route Example
 app.get('/dashboard', isAuthenticated, (req, res) => {
   res.send(`Welcome ${req.user.name}`);
+});
+
+// Handle all undefined routes to prevent 404 errors on OAuth callbacks
+app.get('*', (req, res) => {
+  res.status(404).send('404: Not Found');
 });
 
 // Server Start
