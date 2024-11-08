@@ -173,50 +173,20 @@
 // app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
 
 // src/server.js
-// src/server.js
-const express = require('express');
-const passport = require('passport');
-const GoogleStrategy = require('passport-google-oauth20').Strategy;
-const session = require('express-session');
-const dotenv = require('dotenv');
-const helmet = require('helmet');
-const morgan = require('morgan');
-const User = require('./models/User');
-const connectDB = require('./config/db');
-const cors = require('cors');
+import express from 'express';
+import passport from 'passport';
+import { Strategy as GoogleStrategy } from 'passport-google-oauth20';
+import session from 'express-session';
+import User from '../../models/User';
+import connectDB from '../../config/db';
 
-dotenv.config();
 const app = express();
-
-// Check for required environment variables
-if (!process.env.GOOGLE_CLIENT_ID || !process.env.GOOGLE_CLIENT_SEC || !process.env.SESSION_SEC || !process.env.VITE_APP_URL) {
-  console.error("⚠️  Missing environment variables. Please check your .env file.");
-  process.exit(1);
-}
-
-const corsOptions = {
-  origin: process.env.VITE_APP_URL,
-  credentials: true,
-};
-app.use(cors(corsOptions));
-
-// Use Helmet for security headers
-app.use(helmet());
-
-// Logging middleware
-app.use(morgan('dev'));
-
-// Middleware
-app.use(express.json());
-
-// Connect to MongoDB
 connectDB();
 
-// Passport Configuration
 passport.use(new GoogleStrategy({
   clientID: process.env.GOOGLE_CLIENT_ID,
   clientSecret: process.env.GOOGLE_CLIENT_SEC,
-  callbackURL: '/auth/google/callback'
+  callbackURL: `${process.env.VITE_API_BASE_URL}/api/auth/google/callback`
 }, async (accessToken, refreshToken, profile, done) => {
   try {
     let user = await User.findOne({ googleId: profile.id });
@@ -233,7 +203,6 @@ passport.use(new GoogleStrategy({
   }
 }));
 
-// Serialize and Deserialize Users
 passport.serializeUser((user, done) => done(null, user.id));
 passport.deserializeUser(async (id, done) => {
   try {
@@ -244,7 +213,6 @@ passport.deserializeUser(async (id, done) => {
   }
 });
 
-// Session Middleware
 app.use(session({
   secret: process.env.SESSION_SEC,
   resave: false,
@@ -256,20 +224,19 @@ app.use(session({
     sameSite: 'lax'
   }
 }));
+
 app.use(passport.initialize());
 app.use(passport.session());
 
-// Authentication Routes
-app.get('/auth/google', passport.authenticate('google', { scope: ['profile', 'email'] }));
+app.get('/api/auth/google', passport.authenticate('google', { scope: ['profile', 'email'] }));
 
-app.get('/auth/google/callback', passport.authenticate('google', {
+app.get('/api/auth/google/callback', passport.authenticate('google', {
   failureRedirect: `${process.env.VITE_APP_URL}/?error=login_failed`
 }), (req, res) => {
   res.redirect(`${process.env.VITE_APP_URL}/dashboard`);
 });
 
-// Endpoint to Check Authentication Status
-app.get('/auth/status', (req, res) => {
+app.get('/api/auth/status', (req, res) => {
   if (req.isAuthenticated()) {
     res.json(req.user);
   } else {
@@ -277,6 +244,4 @@ app.get('/auth/status', (req, res) => {
   }
 });
 
-// Server Start
-const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+export default app;
