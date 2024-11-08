@@ -172,76 +172,46 @@
 // const PORT = process.env.PORT || 5000;
 // app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
 
-// src/server.js
-import express from 'express';
-import passport from 'passport';
-import { Strategy as GoogleStrategy } from 'passport-google-oauth20';
-import session from 'express-session';
-import User from './models/User';
-import connectDB from './config/db';
+const express = require("express");
+const session = require("express-session");
+const passport = require("passport");
+const cors = require("cors");
+const connectDB = require("./config/db");
+const authRoutes = require("./routes/auth");
+require("dotenv").config();
 
 const app = express();
-connectDB();
 
-passport.use(new GoogleStrategy({
-  clientID: process.env.GOOGLE_CLIENT_ID,
-  clientSecret: process.env.GOOGLE_CLIENT_SEC,
-  callbackURL: `${process.env.VITE_API_BASE_URL}/api/auth/google/callback`
-}, async (accessToken, refreshToken, profile, done) => {
-  try {
-    let user = await User.findOne({ googleId: profile.id });
-    if (!user) {
-      user = await User.create({
-        googleId: profile.id,
-        name: profile.displayName,
-        email: profile.emails[0].value
-      });
-    }
-    done(null, user);
-  } catch (error) {
-    done(error, null);
-  }
-}));
+const corsOptions = {
+  origin: process.env.VITE_APP_URL,
+  credentials: true,
+};
+app.use(cors(corsOptions));
 
-passport.serializeUser((user, done) => done(null, user.id));
-passport.deserializeUser(async (id, done) => {
-  try {
-    const user = await User.findById(id);
-    done(null, user);
-  } catch (err) {
-    done(err, null);
-  }
+app.use(express.json());
+
+app.use((req, res, next) => {
+  res.setHeader("Cross-Origin-Opener-Policy", "same-origin");
+  res.setHeader("Cross-Origin-Embedder-Policy", "require-corp");
+  next();
 });
+
+connectDB();
 
 app.use(session({
   secret: process.env.SESSION_SEC,
   resave: false,
   saveUninitialized: true,
-  cookie: {
-    secure: process.env.NODE_ENV === 'production',
-    httpOnly: true,
-    maxAge: 24 * 60 * 60 * 1000, // 1 day
-    sameSite: 'lax'
-  }
+  cookie: { secure: process.env.NODE_ENV === "production" }
 }));
-
 app.use(passport.initialize());
 app.use(passport.session());
 
-app.get('/api/auth/google', passport.authenticate('google', { scope: ['profile', 'email'] }));
+app.use("/api/auth", authRoutes);
 
-app.get('/api/auth/google/callback', passport.authenticate('google', {
-  failureRedirect: `${process.env.VITE_APP_URL}/?error=login_failed`
-}), (req, res) => {
-  res.redirect(`${process.env.VITE_APP_URL}/dashboard`);
+app.get("/", (req, res) => {
+  res.send("Welcome to the API");
 });
 
-app.get('/api/auth/status', (req, res) => {
-  if (req.isAuthenticated()) {
-    res.json(req.user);
-  } else {
-    res.status(401).json({ error: 'Not authenticated' });
-  }
-});
-
-export default app;
+const PORT = process.env.PORT || 5000;
+app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
